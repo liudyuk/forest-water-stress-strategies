@@ -11,7 +11,7 @@ date: "2023-08-27"
 #1data
 ```{r}
 #1get the communtiy level trait
-us_eu_CWM=read.csv("/Users/daijunliu/Dropbox/1 EXPERIMENTAL WORK/PAPER/20 CWM traits/2023.01.10 feedbacks/2023.09.13/submussion/data and code/US.EU.CWM_trait.txt",sep="\t")
+us_eu_CWM=read.csv(".../US.EU.CWM_trait.txt",sep="\t")
 names(us_eu_CWM)
 names(us_eu_CWM)[4:11]<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
 #only include the community which the dominant group has higher than 50% 
