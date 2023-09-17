@@ -1,0 +1,144 @@
+---
+title: "fig3 pc drivers"
+output: html_document
+date: "2023-08-27"
+---
+
+```{r setup, include=FALSE}
+#this code is to make the grah 3 and fig s7
+```
+
+#1data
+```{r}
+#1get the communtiy level trait
+us_eu_CWM=read.csv("/Users/daijunliu/Dropbox/1 EXPERIMENTAL WORK/PAPER/20 CWM traits/2023.01.10 feedbacks/2023.09.13/submussion/data and code/US.EU.CWM_trait.txt",sep="\t")
+names(us_eu_CWM)
+names(us_eu_CWM)[4:11]<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
+#only include the community which the dominant group has higher than 50% 
+us_eu_CWM<-us_eu_CWM[us_eu_CWM$per>=0.5,]
+```
+##PCA at communtiy level
+
+```{r fig.width=8,fig.height=5.5}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM$PC1 <- predict(m1, newdata = us_eu_CWM)[,1]
+us_eu_CWM$PC2 <- predict(m1, newdata = us_eu_CWM)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM$group<-as.factor(us_eu_CWM$group)
+levels(us_eu_CWM$group)
+```
+
+##PCA1.2 SPACE
+```{r fig.width=6,fig.height=3}
+#add world map
+world <- map_data("world")
+basic<-ggplot() +
+  geom_map(data = world, map = world,
+  aes(long, lat, map_id = region),color = "black", fill = "lightgray", size = 0.1) 
+basic
+```
+
+
+```{r}
+#FOR PCA
+names(us_eu_CWM)
+library(ggplot2)
+ #scale_color_gradientn(colors = colorRamps::matlab.like(7)), run the colorRamps::matlab.like(7), to check the colors and then put the colors in the code below
+FIG3a<-basic+ 
+  geom_point(data=us_eu_CWM[,c(2:3,21)],aes(x=longitude_cell, y=latitude_cell,color=PC1),shape=15,size=0.8,
+             stroke=0.3)+
+  scale_x_continuous(name = "Longitude°",limits=c(-153.875,25),breaks=seq(-150,25,50)) +
+  #annotate("text", x = -160, y = 70, label = "(a)",size=6)+
+  scale_y_continuous(name="Latitude°",limits=c(24,70),breaks=seq(25,70,15))+
+  #scale_color_gradientn(colors = colorRamps::matlab.like(7))
+  scale_color_gradientn(colors = c("#AA0000","#FF8000","#FFFF00","#00FFFF","#0080FF","#0000AA"))+
+  theme_bw()+
+  theme(
+        panel.border=element_rect(fill=NULL,colour='black',linetype=1,size=0.5),
+        axis.ticks.length=unit(0.08,"inch"),
+        plot.title = element_text(size = 15),
+        legend.text = element_text(colour="black", size = 10),
+        legend.background = element_blank(),
+        legend.key=element_blank(),
+        axis.text.x = element_text(colour = "black", size = 12), 
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.title.x = element_text(colour='black',size=14,vjust=1),
+        axis.title.y = element_text(colour='black',size=14,vjust=1),
+        legend.position = c(0.1, 0.33))
+FIG3a
+
+
+FIG3b<-basic+ 
+  geom_point(data=us_eu_CWM[,c(2:3,22)],aes(x=longitude_cell, y=latitude_cell,color=PC2),shape=15,size=0.8,
+             stroke=0.4)+
+  scale_x_continuous(name = "Longitude°",limits=c(-153.875,25),breaks=seq(-150,25,50)) +
+  #annotate("text", x = -160, y = 70, label = "(a)",size=6)+
+  scale_y_continuous(name="Latitude°",limits=c(24,70),breaks=seq(25,70,15))+
+  
+  #scale_colour_gradientn(colors = colorRamps::magenta2green(7))+
+
+  scale_color_gradientn(colors = c("#e78ac3","#e7298a","#fdc086","#e6f5c9","#33a02c","#66a61e"))+
+  theme_bw()+
+  theme(panel.border=element_rect(fill=NULL,colour='black',linetype=1,size=0.5),
+        axis.ticks.length=unit(0.08,"inch"),
+        plot.title = element_text(size = 15),
+        legend.text = element_text(colour="black", size = 10),
+        legend.background = element_blank(),
+        legend.key=element_blank(),
+        axis.text.x = element_text(colour = "black", size = 12), 
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.title.x = element_text(colour='black',size=14,vjust=1),
+        axis.title.y = element_text(colour='black',size=14,vjust=1),
+        legend.position = c(0.1, 0.33))
+FIG3b
+```
+```{r fig.width=10,fig.height=4}
+library(ggpubr)
+fig3 <- ggarrange(FIG3a,FIG3b,nrow = 2,ncol = 1)
+fig3
+#ggsave(fig3,filename = '.../fig.tiff',compression='lzw', width = 11,height = 8.5,dpi=200)
+```
+
+#2add the distribution map
+```{r}
+PFT_map<-basic+ 
+  geom_point(data=us_eu_CWM[,c(2:3,18)],aes(x=longitude_cell, y=latitude_cell,color=group),shape=15,size=0.5,
+             stroke=0.3)+
+   scale_color_manual(name  ="Forest type",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  scale_x_continuous(name = "Longitude°",limits=c(-153.875,25),breaks=seq(-150,25,50)) +
+  scale_y_continuous(name="Latitude°",limits=c(24,70),breaks=seq(25,70,15))+
+  
+  theme(
+  axis.text.y = element_text(colour = "black",  size = 14),
+  axis.text.x = element_text(colour = "black",  size = 14),
+  axis.title.x = element_text(colour = "black",  size = 16),
+  axis.title.y = element_text(colour = "black",  size = 16),
+  legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 12),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.15,0.18),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+PFT_map
+ggsave(PFT_map,filename = '.../figs7map.tiff',compression='lzw', width = 10,height = 6,dpi=200)
+```
+

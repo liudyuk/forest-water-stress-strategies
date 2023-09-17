@@ -1,0 +1,473 @@
+---
+title: "test for size of gridcell"
+output: html_document
+---
+
+#input packages
+```{r setup, include=FALSE}
+library(GGally)
+library("FactoMineR")
+library("factoextra")
+#install.packages("pals")
+library(pals)
+library(ggplot2)
+library(ggfortify)
+library(corrplot)
+```
+#1data
+```{r}
+#get the community level trait
+us_eu_CWM_S0.1.m1=read.csv(".../us_eu_CWM_S0.1.m1.txt",sep="\t")
+us_eu_CWM_S0.1.m2=read.csv(".../us_eu_CWM_S0.1.m2.txt",sep="\t")
+us_eu_CWM_S0.1.m3=read.csv(".../us_eu_CWM_S0.1.m3.txt",sep="\t")
+
+
+us_eu_CWM_S0.5.m1=read.csv(".../us_eu_CWM_S0.5.m1.txt",sep="\t")
+us_eu_CWM_S0.5.m2=read.csv(".../us_eu_CWM_S0.5.m2.txt",sep="\t")
+us_eu_CWM_S0.5.m3=read.csv(".../us_eu_CWM_S0.5.m3.txt",sep="\t")
+
+```
+
+#method1, size0.1
+```{r}
+cwm_pca1 <- prcomp(us_eu_CWM_S0.1.m1[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(cwm_pca1, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM_S0.1.m1$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1, alpha_arrow = 0.6,
+                    ggtheme = theme_classic(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+
+```
+
+```{r}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM_S0.1.m1[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,2] <- - m1$x[,2]
+m1$rotation[,2] <- -m1$rotation[,2]
+
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM_S0.1.m1$PC1 <- predict(m1, newdata = us_eu_CWM_S0.1.m1)[,1]
+us_eu_CWM_S0.1.m1$PC2 <- predict(m1, newdata = us_eu_CWM_S0.1.m1)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM_S0.1.m1$group<-as.factor(us_eu_CWM_S0.1.m1$group)
+levels(us_eu_CWM_S0.1.m1$group)
+# Plot with grouping by flower
+fig1<-ggplot() +
+  geom_point(data = us_eu_CWM_S0.1.m1, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  #scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (16.9%)")+xlab("PC1 (47%)")+
+  theme(
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 14),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.15,0.78),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+fig1
+ggsave(plot=fig1,filename = '.../fig1al.tiff', compression='lzw', width = 5,height = 4,dpi=200)
+```
+
+#method2, size0.1
+```{r}
+cwm_pca1 <- prcomp(us_eu_CWM_S0.1.m2[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(cwm_pca1, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM_S0.1.m2$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1, alpha_arrow = 0.6,
+                    ggtheme = theme_classic(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+
+```
+
+```{r}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM_S0.1.m2[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,2] <- - m1$x[,2]
+m1$rotation[,2] <- -m1$rotation[,2]
+
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM_S0.1.m2$PC1 <- predict(m1, newdata = us_eu_CWM_S0.1.m2)[,1]
+us_eu_CWM_S0.1.m2$PC2 <- predict(m1, newdata = us_eu_CWM_S0.1.m2)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM_S0.1.m2$group<-as.factor(us_eu_CWM_S0.1.m2$group)
+levels(us_eu_CWM_S0.1.m2$group)
+# Plot with grouping by flower
+fig1<-ggplot() +
+  geom_point(data = us_eu_CWM_S0.1.m2, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  #scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (18.2%)")+xlab("PC1 (42.8%)")+
+  theme(
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 14),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.15,0.78),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+fig1
+ggsave(plot=fig1,filename = '.../fig1b.last.tiff', compression='lzw', width = 5,height = 4,dpi=200)
+```
+#method3, size0.1
+```{r}
+cwm_pca1 <- prcomp(us_eu_CWM_S0.1.m3[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(cwm_pca1, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM_S0.1.m3$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1, alpha_arrow = 0.6,
+                    ggtheme = theme_classic(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+
+```
+
+```{r}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM_S0.1.m3[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,2] <- - m1$x[,2]
+m1$rotation[,2] <- -m1$rotation[,2]
+
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM_S0.1.m3$PC1 <- predict(m1, newdata = us_eu_CWM_S0.1.m3)[,1]
+us_eu_CWM_S0.1.m3$PC2 <- predict(m1, newdata = us_eu_CWM_S0.1.m3)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM_S0.1.m3$group<-as.factor(us_eu_CWM_S0.1.m3$group)
+levels(us_eu_CWM_S0.1.m3$group)
+# Plot with grouping by flower
+fig1<-ggplot() +
+  geom_point(data = us_eu_CWM_S0.1.m3, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  #scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (17.3%)")+xlab("PC1 (44.8%)")+
+  theme(
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 14),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.15,0.78),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+fig1
+ggsave(plot=fig1,filename = '.../fig1c.last.tiff', compression='lzw', width = 5,height = 4,dpi=200)
+```
+
+#method1, size0.5
+```{r}
+cwm_pca1 <- prcomp(us_eu_CWM_S0.5.m1[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(cwm_pca1, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM_S0.5.m1$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1, alpha_arrow = 0.6,
+                    ggtheme = theme_classic(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+
+```
+
+```{r}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM_S0.5.m1[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,2] <-  m1$x[,2]
+m1$rotation[,2] <- m1$rotation[,2]
+
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM_S0.5.m1$PC1 <- predict(m1, newdata = us_eu_CWM_S0.5.m1)[,1]
+us_eu_CWM_S0.5.m1$PC2 <- predict(m1, newdata = us_eu_CWM_S0.5.m1)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM_S0.5.m1$group<-as.factor(us_eu_CWM_S0.5.m1$group)
+levels(us_eu_CWM_S0.5.m1$group)
+# Plot with grouping by flower
+fig1<-ggplot() +
+  geom_point(data = us_eu_CWM_S0.5.m1, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  #scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (16%)")+xlab("PC1 (49.5%)")+
+  theme(
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 14),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.12,0.78),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+fig1
+ggsave(plot=fig1,filename = '.../fig1d.last.tiff', compression='lzw', width = 5,height = 4,dpi=200)
+```
+
+#method2, size0.5
+```{r}
+cwm_pca1 <- prcomp(us_eu_CWM_S0.5.m2[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(cwm_pca1, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM_S0.5.m2$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1, alpha_arrow = 0.6,
+                    ggtheme = theme_classic(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+
+```
+
+```{r}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM_S0.5.m2[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,2] <-  m1$x[,2]
+m1$rotation[,2] <- m1$rotation[,2]
+
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM_S0.5.m2$PC1 <- predict(m1, newdata = us_eu_CWM_S0.5.m2)[,1]
+us_eu_CWM_S0.5.m2$PC2 <- predict(m1, newdata = us_eu_CWM_S0.5.m2)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM_S0.5.m2$group<-as.factor(us_eu_CWM_S0.5.m2$group)
+levels(us_eu_CWM_S0.5.m2$group)
+# Plot with grouping by flower
+fig1<-ggplot() +
+  geom_point(data = us_eu_CWM_S0.5.m2, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  #scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (16.2%)")+xlab("PC1 (49.4%)")+
+  theme(
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 14),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.14,0.78),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+fig1
+ggsave(plot=fig1,filename = '.../fig1c.last.tiff', compression='lzw', width = 5,height = 4,dpi=200)
+```
+
+
+#method3, size0.5
+```{r}
+cwm_pca1 <- prcomp(us_eu_CWM_S0.5.m3[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(cwm_pca1, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM_S0.5.m3$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1, alpha_arrow = 0.6,
+                    ggtheme = theme_classic(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+
+```
+
+```{r}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM_S0.5.m3[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,2] <-  m1$x[,2]
+m1$rotation[,2] <- m1$rotation[,2]
+
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM_S0.5.m3$PC1 <- predict(m1, newdata = us_eu_CWM_S0.5.m3)[,1]
+us_eu_CWM_S0.5.m3$PC2 <- predict(m1, newdata = us_eu_CWM_S0.5.m3)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM_S0.5.m3$group<-as.factor(us_eu_CWM_S0.5.m3$group)
+levels(us_eu_CWM_S0.5.m3$group)
+# Plot with grouping by flower
+fig1<-ggplot() +
+  geom_point(data = us_eu_CWM_S0.5.m3, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  #scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (14.1%)")+xlab("PC1 (52.8%)")+
+  theme(
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 14),
+  legend.title = element_text(size=12),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  
+  panel.background = element_rect(color="black",fill="white"), 
+  legend.position=c(0.15,0.78),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+fig1
+ggsave(plot=fig1,filename = '.../fig1c.last.tiff', compression='lzw', width = 5,height = 4,dpi=200)
+```

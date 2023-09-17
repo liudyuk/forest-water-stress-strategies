@@ -1,0 +1,265 @@
+---
+title: "fig1 code"
+output: html_document
+---
+#input packages
+```{r setup, include=FALSE}
+library(GGally)
+library("FactoMineR")
+library("factoextra")
+#install.packages("pals")
+library(pals)
+library(ggplot2)
+library(ggfortify)
+library(corrplot)
+library(data.table)
+```
+#1data
+```{r}
+#1get the communtiy level trait
+us_eu_CWM=read.csv(".../US.EU.CWM_trait.txt",sep="\t")
+names(us_eu_CWM)
+
+#get the specie level trait
+us_eu_sp=read.csv(".../US.EU.species_level_trait.txt",sep="\t")
+names(us_eu_sp)
+names(us_eu_CWM)[4:11]<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
+names(us_eu_sp)[4:11]<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
+#only include the community which the dominant group has higher than 50% 
+us_eu_CWM<-us_eu_CWM[us_eu_CWM$per>=0.5,]
+#dplyr::count(us_eu_CWM,group)
+```
+##fig2a
+```{r}
+cwm_pca <- prcomp(us_eu_CWM[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+
+
+cwm_pca$x[,1] <- - cwm_pca$x[,1]
+cwm_pca$rotation[,1] <- -cwm_pca$rotation[,1]
+autoplot(cwm_pca,loadings.label=TRUE,loadings=TRUE)
+
+
+fviz_pca_biplot(cwm_pca, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_CWM$group, 
+                    palette = c("#2166AC","forestgreen", "#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1.2, alpha_arrow = 1,
+                    ggtheme = theme_minimal(),
+                    legend.title = "PFTs")
+```
+
+```{r fig.width=8,fig.height=5.5}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM$PC1 <- predict(m1, newdata = us_eu_CWM)[,1]
+us_eu_CWM$PC2 <- predict(m1, newdata = us_eu_CWM)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM$group<-as.factor(us_eu_CWM$group)
+levels(us_eu_CWM$group)
+# Plot with grouping by flower
+fig1a<-ggplot() +
+  geom_point(data = us_eu_CWM, aes(PC1, PC2, color=group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="Forest type",values = c( "#2166AC","forestgreen","#D6604D")) + 
+  scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.4, "cm")),color = "black") +
+  #geom_text(aes(x = l.posx, y = l.posy, label = l.labels), color = "black", size = 6, hjust = 0) +
+  
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (16.9%)")+xlab("PC1 (47%)")+
+  theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 12),
+  legend.title = element_text(size=14),
+  legend.key.size = unit(0.7, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  legend.position= c(0.15,0.15),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )+guides(color=guide_legend(title="Forest type")) 
+fig1a
+#ggsave(plot=fig1a,filename = '.../fig2a.tiff', ,compression='lzw',  width = 10,height = 6,dpi=1200,units = "cm")
+```
+##fig2b
+
+```{r}
+var<-get_pca_var(cwm_pca)
+library("corrplot")
+corrplot(var$contrib, is.corr=FALSE)
+pca12_var<-data.table(var$contrib)
+Trait<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
+pca12_var<-cbind(pca12_var,Trait)
+
+levels(as.factor(pca12_var$Trait))
+pca12_var$Trait = factor(pca12_var$Trait, levels=c("WD","-TLP","Slope","-P50",
+                                                   "LMA","LS","Ks","N"))
+d1<-ggplot(pca12_var,aes(Trait,Dim.1))+geom_bar(stat = "identity",  width=0.8,
+                                            alpha=0.8,fill = "gray80",color="black") +
+    scale_y_continuous(limits=c(0,30),breaks=seq(0,30,15))+
+  coord_flip() +labs(y="PCA 1", x="Functional traits")+theme_classic()+
+  
+  theme(panel.grid.major.x = element_blank() , 
+        axis.ticks.length=unit(0.08,"inch"),axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(colour = "black",  size = 12),
+        axis.title.x = element_blank())
+d1
+
+d2<-ggplot(pca12_var,aes(Trait,Dim.2))+geom_bar(stat = "identity",  width=0.8,
+                                            alpha=0.8,fill = "gray80",color="black") +
+    scale_y_continuous(limits=c(0,50),breaks=seq(0,50,25))+
+  coord_flip() +labs(y="PCA 2", x="Functional traits")+theme_classic()+
+  theme(panel.grid.major.x = element_blank() , 
+        axis.ticks.length=unit(0.08,"inch"),axis.title.y = element_blank(),
+                axis.text.y = element_blank(),
+        axis.text.x = element_text(colour = "black",  size = 12),
+        axis.title.x = element_blank())
+d2
+
+library(ggpubr)
+combined_plot <- ggarrange(d1,d2,nrow = 1,ncol = 2)
+combined_plot
+#ggsave(combined_plot,filename = '.../fig2b..tiff',compression='lzw', width = 3.4,height = 4.2,dpi=200)
+```
+
+##fig2c correlation
+```{r fig.width=12,fig.height=4}
+cor_metric_cwm<-us_eu_CWM[,c("N","Ks","LS","LMA","-P50","Slope","-TLP","WD")]
+corrplot.mixed(corr=cor(cor_metric_cwm), order="original",lower="ellipse",
+               upper="number",tl.pos =c("d"),insig = "p-value",sig.level = 0.001)
+```
+#2.species level
+###Fig.s1a
+```{r}
+sp_pca <- prcomp(us_eu_sp[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+fviz_pca_biplot(sp_pca, axes = c(1, 2),
+                    pointsize = 1,alpha=0.5,
+                    col.ind = us_eu_sp$group, 
+                    palette = c( "#2166AC","forestgreen","#D6604D"),
+                    addEllipses = F, label = "var",
+                    col.var = "black", repel = TRUE,arrowsize = 1.2, alpha_arrow = 1,
+                    ggtheme = theme_minimal(),
+                    legend.title = "PFTs") + xlim(c(-8,8))+ ylim(c(-8,8))
+```
+
+```{r }
+sp_pca <- prcomp(us_eu_sp[,c(4:11)],center = TRUE,scale. = T,retx=TRUE) 
+
+# Get principal loadings of first two components
+us_eu_sp$PC1 <- predict(sp_pca, newdata = us_eu_sp)[,1]
+us_eu_sp$PC2 <- predict(sp_pca, newdata = us_eu_sp)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- sp_pca$rotation[,1]*10
+l.y <- sp_pca$rotation[,2]*11
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(sp_pca$rotation)
+us_eu_sp$group<-as.factor(us_eu_sp$group)
+levels(us_eu_sp$group)
+# Plot with grouping by flower
+plota_s2a<-
+  ggplot() +
+  geom_point(data = us_eu_sp, aes(PC1, PC2, color = group),alpha=0.6,shape=15) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.5)+
+  geom_vline(xintercept=0, linetype="dashed", color = "black", size=0.5)+
+  scale_color_manual(name  ="PFT",values = c( "#2166AC","forestgreen","#D6604D")) + #colorblind pal
+  guides(color="none")+
+  scale_size_continuous(name  ="PFT proportion",range = c(0, 2))+
+  geom_segment(aes(x=0, y=0, xend = l.x, yend = l.y), 
+               arrow = arrow(length = unit(0.2, "cm")),color = "grey30") +
+  scale_x_continuous(limits=c(-8,8),breaks=seq(-8,8,4)) +
+  scale_y_continuous(limits=c(-8,8),breaks=seq(-8,8,4))+
+  ylab("PC2 (18.6%)")+xlab("PC1 (36.2%)")+
+  theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    axis.text.y = element_text(colour = "black",  size = 14),
+    axis.text.x = element_text(colour = "black",  size = 14),
+    axis.title.x = element_text(colour = "black",  size = 16),
+    axis.title.y = element_text(colour = "black",  size = 16),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 12),
+  legend.title = element_text(size=14),
+  legend.key.size = unit(0.7, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 12),
+  legend.position= c(0.15,0.18),
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )+guides(color=guide_legend(title="PFT")) 
+plota_s2a
+#ggsave(plota_s2a,filename = '.../plota_s2a.tiff', ,compression='lzw',  width = 10,height = 6,dpi=1200,units = "cm")
+```
+###Fig.s2b
+```{r}
+var<-get_pca_var(sp_pca)
+library("corrplot")
+corrplot(var$contrib, is.corr=FALSE)
+pca12_var<-data.table(var$contrib)
+
+Trait<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
+pca12_var<-cbind(pca12_var,Trait)
+
+levels(as.factor(pca12_var$Trait))
+pca12_var$Trait = factor(pca12_var$Trait, levels=c("WD","-TLP","Slope","-P50",
+                                                   "LMA","LS","Ks","N"))
+d1<-ggplot(pca12_var,aes(Trait,Dim.1))+geom_bar(stat = "identity",  width=0.8,
+                                            alpha=0.8,fill = "gray80",color="black") +
+    scale_y_continuous(limits=c(0,30),breaks=seq(0,30,15))+
+  coord_flip() +labs(y="PCA 1", x="Functional traits")+theme_classic()+
+  
+  theme(panel.grid.major.x = element_blank() , 
+        axis.ticks.length=unit(0.08,"inch"),axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(colour = "black",  size = 12),
+        axis.title.x = element_blank())
+d1
+
+d2<-ggplot(pca12_var,aes(Trait,Dim.2))+geom_bar(stat = "identity",  width=0.8,
+                                            alpha=0.8,fill = "gray80",color="black") +
+    scale_y_continuous(limits=c(0,50),breaks=seq(0,50,25))+
+  coord_flip() +labs(y="PCA 2", x="Functional traits")+theme_classic()+
+  theme(panel.grid.major.x = element_blank() , 
+        axis.ticks.length=unit(0.08,"inch"),axis.title.y = element_blank(),
+                axis.text.y = element_blank(),
+        axis.text.x = element_text(colour = "black",  size = 12),
+        axis.title.x = element_blank())
+d2
+
+library(ggpubr)
+combined_plot <- ggarrange(d1,d2,nrow = 1,ncol = 2)
+combined_plot
+#ggsave(combined_plot,filename = '.../figS2b.tiff',compression='lzw', width = 3.4,height = 4.2,dpi=200)
+```
+
+###Fig.s2c
+
+
+```{r fig.width=12,fig.height=4}
+cor_metric_sp<-us_eu_sp[,c("N","Ks","LS","LMA","-P50","Slope","-TLP","WD")]
+corrplot.mixed(corr=cor(cor_metric_sp), order="original",lower="ellipse",
+               upper="number",tl.pos =c("d"),insig = "p-value",sig.level = 0.001)
+```

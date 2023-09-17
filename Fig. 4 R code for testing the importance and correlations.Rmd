@@ -1,0 +1,278 @@
+---
+title: "fig4 drivers for PC scores"
+output: html_document
+---
+
+#input packages
+```{r setup, include=FALSE}
+library(GGally)
+library("FactoMineR")
+library("factoextra")
+#install.packages("pals")
+library(pals)
+library(ggplot2)
+library(ggfortify)
+library(corrplot)
+```
+#1data
+#1data
+```{r}
+#1get the communtiy level trait
+us_eu_CWM=read.csv(".../US.EU.CWM_trait.txt",sep="\t")
+names(us_eu_CWM)
+names(us_eu_CWM)[4:11]<-c("-P50","Slope","-TLP","LS","Ks","WD","LMA","N")
+#only include the community which the dominant group has higher than 50% 
+us_eu_CWM<-us_eu_CWM[us_eu_CWM$per>=0.5,]
+```
+##PCA at communtiy level
+
+```{r fig.width=8,fig.height=5.5}
+# PCA with prcomp
+m1 <- prcomp(us_eu_CWM[,c(4:11)], center = TRUE,scale. = T,retx=TRUE)
+m1$x[,1] <- - m1$x[,1]
+m1$rotation[,1] <- -m1$rotation[,1]
+autoplot(m1,loadings.label=TRUE,loadings=TRUE)
+
+# Get principal loadings of first two components
+us_eu_CWM$PC1 <- predict(m1, newdata = us_eu_CWM)[,1]
+us_eu_CWM$PC2 <- predict(m1, newdata = us_eu_CWM)[,2]
+# Get arrow end point locations (loadings*2 for effect)
+l.x <- m1$rotation[,1]*9
+l.y <- m1$rotation[,2]*9
+# Get label positions (%15 further than end of arrows)
+l.posx <- l.x*1.25
+l.posy <- l.y*1.1
+# Get labels for plot (variable names)
+l.labels <- row.names(m1$rotation)
+us_eu_CWM$group<-as.factor(us_eu_CWM$group)
+levels(us_eu_CWM$group)
+```
+
+
+# test pc1
+```{r}
+# method:https://advstats.psychstat.org/book/mregression/importance.php
+library(relaimpo)
+#1 FOR PC2 ALL
+gpa.model<-lm(PC1~AI+MAT+MAP+meanT_Q+pre_dryQ, data=us_eu_CWM,na.action=na.omit)
+calc.relimp(gpa.model, rela=TRUE)
+bootresults<-boot.relimp(gpa.model, b=1000) 
+ci<-booteval.relimp(bootresults, norank=T)
+plot(ci)
+#str(ci)
+ci.df<-data.frame(ci@mark)
+ci.df$Driver<-rownames(ci.df)
+ci.df$Driver<-as.factor(ci.df$Driver)
+levels(ci.df$Driver)<-c("AI","MAP","MAT","Summer_T","Summer_P")
+ci.df$Driver <- factor(ci.df$Driver, levels=c("Summer_T","Summer_P","MAT","MAP","AI"))
+
+names(ci.df)<-c("Per","CI_low","CI_high","Driver")
+str(ci.df)
+ci.df$Per<-as.numeric(ci.df$Per)
+ci.df$Per<-with(ci.df,100*Per)
+ci.df$CI_low<-as.numeric(ci.df$CI_low)
+ci.df$CI_low<-with(ci.df,100*CI_low)
+ci.df$CI_high<-as.numeric(ci.df$CI_high)
+ci.df$CI_high<-with(ci.df,100*CI_high)
+
+
+pc1_driver<-
+  ggplot(ci.df,aes(Driver,Per))+
+  geom_bar(stat="identity", fill="grey70",position=position_dodge()) +
+  geom_errorbar(aes(ymin=CI_low, ymax=CI_high), width=.5,
+                position=position_dodge(.9))+
+  scale_y_continuous(name="Relative importance (%)",limits=c(0,20),breaks=seq(0,20,5))+
+  theme_classic()+coord_flip()+
+  theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    legend.position="none",
+    axis.text.y = element_text(colour = "black", size = 14,vjust = 0.6) ,
+    axis.text.x = element_text(colour = "black", size = 14,vjust = 0.6) ,
+    axis.ticks.length.y = unit(.3, "cm"),
+    axis.ticks.length.x = unit(.3, "cm"),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank())
+pc1_driver
+ggsave(pc1_driver,filename = '.../fig4.a.tiff',compression='lzw', width = 3,height = 3.5,dpi=200)
+```
+#test pc2
+```{r}
+#1 FOR PC2 ALL
+gpa.model<-lm(PC2~AI+MAT+MAP+meanT_Q+pre_dryQ, data=us_eu_CWM,na.action=na.omit)
+calc.relimp(gpa.model, rela=TRUE)
+bootresults<-boot.relimp(gpa.model, b=1000) 
+ci<-booteval.relimp(bootresults, norank=T)
+plot(ci)
+#str(ci)
+ci.df<-data.frame(ci@mark)
+ci.df$Driver<-rownames(ci.df)
+ci.df$Driver<-as.factor(ci.df$Driver)
+levels(ci.df$Driver)<-c("AI","MAP","MAT","Summer_T","Summer_P")
+ci.df$Driver <- factor(ci.df$Driver, levels=c("Summer_T","Summer_P","MAT","MAP","AI"))
+
+names(ci.df)<-c("Per","CI_low","CI_high","Driver")
+str(ci.df)
+ci.df$Per<-as.numeric(ci.df$Per)
+ci.df$Per<-with(ci.df,100*Per)
+ci.df$CI_low<-as.numeric(ci.df$CI_low)
+ci.df$CI_low<-with(ci.df,100*CI_low)
+ci.df$CI_high<-as.numeric(ci.df$CI_high)
+ci.df$CI_high<-with(ci.df,100*CI_high)
+pc2_driver<-ggplot(ci.df,aes(Driver,Per))+geom_bar(stat="identity", fill="grey70",position=position_dodge()) +
+  geom_errorbar(aes(ymin=CI_low, ymax=CI_high), width=.5,
+                 position=position_dodge(.9))+
+  scale_y_continuous(name="Importance (%)",limits=c(0,15),breaks=seq(0,15,5))+
+  theme_classic()+coord_flip()+
+  theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    legend.position="none",
+    axis.text.y = element_text(colour = "black", size = 14,vjust = 0.6) ,
+    axis.text.x = element_text(colour = "black", size = 14,vjust = 0.6) ,
+    axis.ticks.length.y = unit(.3, "cm"),
+    axis.ticks.length.x = unit(.3, "cm"),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank())
+pc2_driver
+ggsave(pc2_driver,filename = '.../fig4.b.tiff',compression='lzw', width = 3,height = 3.5,dpi=200)
+
+```
+
+```{r}
+require(ggiraph)
+require(ggiraphExtra)
+require(plyr)
+library(ggeffects)
+#PC1
+lmm1 <-lm(PC1 ~ AI ,data=us_eu_CWM,na.action=na.omit)
+ggpredict(lmm1, terms = c("AI[all]"), type = "re")%>% plot(add.data = TRUE)
+summary(lmm1)
+
+lmm1 <-lm(PC1 ~ meanT_Q ,data=us_eu_CWM,na.action=na.omit)
+ggpredict(lmm1, terms = c("meanT_Q[all]"), type = "re")%>% plot(add.data = TRUE)
+summary(lmm1)
+
+#PC2
+lmm1 <-lm(PC2 ~ pre_dryQ ,data=us_eu_CWM,na.action=na.omit)
+summary(lmm1)
+ggpredict(lmm1, terms = c("pre_dryQ[n=10]"), type = "re")%>% plot(add.data = TRUE)
+
+
+lmm1 <-lm(PC2 ~ MAT ,data=us_eu_CWM,na.action=na.omit)
+summary(lmm1)
+ggpredict(lmm1, terms = c("MAT[n=10]"), type = "re")%>% plot(add.data = TRUE)
+
+
+```
+```{r}
+pc1_cor<-
+  ggplot(us_eu_CWM, aes(x=meanT_Q, y=PC1,color=PC1)) + 
+  geom_point(shape=15,size=1,stroke=0.4)+
+  geom_smooth(method=lm,formula = y ~ x, color="dodgerblue4",se=TRUE,size=1.2,all=TRUE)+
+  scale_x_continuous(name = "Mean summer",limits=c(0,31),breaks=seq(0,30,10)) +
+  scale_y_continuous(name="PC1 score",limits=c(-8,7.1),breaks=seq(-8,7,4))+
+  #scale_color_gradientn(colors = colorRamps::matlab.like(7))
+  scale_color_gradientn(colors = c("#AA0000","#FF8000","#FFFF00","#00FFFF","#0080FF","#0000AA"))+
+  theme_bw()+
+  theme(panel.border=element_rect(fill=NULL,colour='black',linetype=1,size=0.5),
+        axis.ticks.length=unit(0.08,"inch"),
+        plot.title = element_text(size = 15),
+        legend.background = element_blank(),
+        legend.key=element_blank(),
+        legend.position = 'none',
+        axis.ticks.length.y = unit(.3, "cm"),
+        axis.ticks.length.x = unit(.3, "cm"),
+        axis.text.x = element_text(colour = "black", size = 12), 
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour='black',size=14,vjust=1))
+pc1_cor
+ggsave(pc1_cor,filename = '.../fig4.e.tiff',compression='lzw', width = 4,height = 3.5,dpi=200)
+
+pc2_cor<-
+  ggplot(us_eu_CWM, aes(x=MAT, y=PC2,color=PC2)) + 
+  geom_point(shape=15,size=1,stroke=0.4)+
+  geom_smooth(method=lm,formula = y ~ x, color="dodgerblue4",se=TRUE,size=1.2)+
+  scale_x_continuous(name = "MAT",limits=c(-10,25),breaks=seq(-10,25,10)) +
+  scale_y_continuous(name="PC2 score",limits=c(-6.5,6),breaks=seq(-6,6,3))+
+  #scale_color_gradientn(colors = colorRamps::matlab.like(7))
+  scale_color_gradientn(colors = c("#e78ac3","#e7298a","#fdc086","#e6f5c9","#33a02c","#66a61e"))+
+  theme_bw()+
+  theme(panel.border=element_rect(fill=NULL,colour='black',linetype=1,size=0.5),
+        axis.ticks.length=unit(0.08,"inch"),
+        plot.title = element_text(size = 15),
+        legend.background = element_blank(),
+        legend.key=element_blank(),
+        legend.position = 'none',
+        axis.text.x = element_text(colour = "black", size = 12), 
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour='black',size=14,vjust=1))
+pc2_cor
+ggsave(pc2_cor,filename = '.../fig4f.tiff',compression='lzw', width = 4,height = 3.5,dpi=200)
+```
+```{r}
+#for airidity
+lmm1 <-lm(PC1 ~ AI ,data=us_eu_CWM,na.action=na.omit)
+ggpredict(lmm1, terms = c("AI[all]"), type = "re")%>% plot(add.data = TRUE)
+summary(lmm1)
+
+lmm1 <-lm(PC2 ~ AI ,data=us_eu_CWM,na.action=na.omit)
+ggpredict(lmm1, terms = c("AI[all]"), type = "re")%>% plot(add.data = TRUE)
+summary(lmm1)
+
+
+```
+
+
+```{r}
+pc1_cor<-
+  ggplot(us_eu_CWM, aes(x=AI, y=PC1,color=PC1)) + 
+  geom_point(shape=15,size=1,stroke=0.4)+
+  geom_smooth(method=lm,formula = y ~ x, color="dodgerblue4",se=TRUE,size=1.2,all=T)+
+  scale_x_continuous(name = "Mean summer",limits=c(0,7.2),breaks=seq(0,6,2)) +
+  scale_y_continuous(name="PC1 score",limits=c(-8,7.1),breaks=seq(-8,7,4))+
+  #scale_color_gradientn(colors = colorRamps::matlab.like(7))
+  scale_color_gradientn(colors = c("#AA0000","#FF8000","#FFFF00","#00FFFF","#0080FF","#0000AA"))+
+  theme_bw()+
+  theme(panel.border=element_rect(fill=NULL,colour='black',linetype=1,size=0.5),
+        axis.ticks.length=unit(0.08,"inch"),
+        plot.title = element_text(size = 15),
+        legend.background = element_blank(),
+        legend.key=element_blank(),
+        legend.position = 'none',
+        axis.ticks.length.y = unit(.3, "cm"),
+        axis.ticks.length.x = unit(.3, "cm"),
+        axis.text.x = element_text(colour = "black", size = 12), 
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour='black',size=14,vjust=1))
+pc1_cor
+ggsave(pc1_cor,filename = '.../fig4.c.tiff',compression='lzw', width = 4,height = 3.5,dpi=200)
+
+pc2_cor<-
+  ggplot(us_eu_CWM, aes(x=AI, y=PC2,color=PC2)) + 
+  geom_point(shape=15,size=1,stroke=0.4)+
+  geom_smooth(method=lm,formula = y ~ x, color="dodgerblue4",se=TRUE,size=1.2)+
+  scale_x_continuous(name = "Mean summer",limits=c(0,7.2),breaks=seq(0,6,2)) +
+  scale_y_continuous(name="PC2 score",limits=c(-6.5,6),breaks=seq(-6,6,3))+
+  #scale_color_gradientn(colors = colorRamps::matlab.like(7))
+  scale_color_gradientn(colors = c("#e78ac3","#e7298a","#fdc086","#e6f5c9","#33a02c","#66a61e"))+
+  theme_bw()+
+  theme(panel.border=element_rect(fill=NULL,colour='black',linetype=1,size=0.5),
+        axis.ticks.length=unit(0.08,"inch"),
+        plot.title = element_text(size = 15),
+        legend.background = element_blank(),
+        legend.key=element_blank(),
+        legend.position = 'none',
+        axis.text.x = element_text(colour = "black", size = 12), 
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour='black',size=14,vjust=1))
+pc2_cor
+ggsave(pc2_cor,filename = '.../fig4.d.tiff',compression='lzw', width = 4,height = 3.5,dpi=200)
+```
+
+
+
+
+
